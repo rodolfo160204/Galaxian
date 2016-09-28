@@ -11,9 +11,10 @@ void generateRandomNumber(int &x, int limit)
 
 	//generate random number
 	//seed
+	//
 	//srand(time(NULL));
 	int random;
-	//star_x will be assigned a value from 0 to 1279
+	
 	random = rand() % limit;
 
 	x = random;

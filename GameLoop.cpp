@@ -21,9 +21,7 @@ GameLoop::GameLoop()
 	{
 		fleet.push_back(new Enemy());
 		//fleet[i] = nullptr;
-	}
-
-	
+	}	
 }
 
 GameLoop::~GameLoop()
@@ -56,7 +54,7 @@ bool GameLoop::onCreate(int a_argc, char* a_argv[])
 	hero.setSpeed(30.0f);
 	MoveSprite(hero.getId(), hero.getX(), hero.getY());
 
-	//Laser setup
+	//Laser(player) setup
 	player_laser_sprite = CreateSprite("./images_assets/Lasers/image15.png", zap.getWidth(), zap.getHeight(), true);	
 	zap.setX(m_iScreenWidth * 0.5f);
 	zap.setY(100);
@@ -69,20 +67,24 @@ bool GameLoop::onCreate(int a_argc, char* a_argv[])
 	setImageId(1, true);
 	//setImageId(2, true);
 
+	//Laser (alien) setup
+	alien_laser = CreateSprite("./Images_assets/Lasers/image7.png", zap.getWidth(), zap.getHeight(), true);
+
+
+
 	for (int i = 0; i < fleet.size(); i++)
 	{
 
-		
-
 		fleet[i]->setShiftSpeed(120.0f);
+		fleet[i]->setAttackSpeed(20.0f);
 
 	}
 
 
 	//stand_by(fleet, alien_sliding_counter, 0);
-	//sets the value for the time1 variable, which indicates when the game has started.
-	time1 = time(NULL);
-	
+	//sets the value for the t_begin variable, which indicates when the game has started.
+	t_begin = time(NULL);
+	t_attack_begin = time(NULL);
 	//Sets the sprites to their initial position
 	
 	//MoveSprite(alien, m_iScreenWidth*0.5f, m_iScreenHeight - 100);
@@ -103,20 +105,71 @@ void GameLoop::onUpdate(float a_deltaTime)
 
 	if (timer >= 1 / 60.f)
 	{
-		//Every time the game updates, gets the time value assigns it to time2.
-		time2 = time(NULL);
+		//Check how many aliens are alive
+		squad.check_aliens(fleet);
 
+		//Every time the game updates, gets the time value assigns it to t_animate.
+		t_animate = time(NULL);
+		t_attack = time(NULL);
 		//animate_aliens
-		if (check_timing(time2, time1, 1))
+		if (check_timing(t_animate, t_begin, 1))
 		{
 			sprite_choice = 1;
 
-			if (time2 % 2 == 0)
+			if (t_animate % 2 == 0)
 			{
 				sprite_choice = 2;
 			}
 
 		}
+
+		if (check_timing(t_attack, t_attack_begin, 5))
+		{
+			//cout << "attack!\n";
+			squad.attack(fleet, laserGuns, alien_laser, timer);
+		}
+
+		//makes a chosen alien leave formation and, if it has not been hit, makes it go to the top of the screen again
+		//and reassigns it to its standard position within the squad.
+		for (int i = 0; i < fleet.size(); i++)
+		{
+			if(fleet[i]->getFlag() == false)
+			{ 
+				if (fleet[i]->getAttackingStatus() == true)
+				{
+					int chosen_one = i;
+					//move chosen alien downwards.
+					fleet[chosen_one]->setY(fleet[chosen_one]->getY() - fleet[chosen_one]->getAttackSpeed()*timer);
+
+					//if alien has gone out of the screen boundaries, make it go up again and restore it to its position.
+					//checks if alien is out of the screen, according to the images height, not an absolute value so 
+					//it is more robust (any image can be inserted without causing problems to the functionality)
+					if (fleet[chosen_one]->getY() < -fleet[chosen_one]->getHeight())
+					{
+						//makes it go to the top of the screen again
+						fleet[chosen_one]->setY(DEFAULT_SCREENHEIGHT);
+						fleet[chosen_one]->setCrossedScreen(true);
+					}
+
+					/*once the y coordinate of the alien that has is attacking is equal (within the range of 2 pixels 
+					//above or below) to its standard y coordinate, assign the standard x position to the new x position 
+					//of the alien */
+
+					if (fleet[chosen_one]->getCrossedScreen() == true)
+					{
+						if (fleet[chosen_one]->getY() > *(squad.getStandardYPositions() + chosen_one) - 2 &&
+							fleet[chosen_one]->getY() < *(squad.getStandardYPositions() + chosen_one) + 2)
+						{
+							//cout << "assemble!!\n\n";
+							fleet[chosen_one]->setX(*(squad.getStandardXPositions() + chosen_one));
+							fleet[chosen_one]->setAttackingStatus(false);
+							fleet[chosen_one]->setCrossedScreen(false);
+						}//close inner if
+					}//close if (fleet[chosen_one]->getCrossedScreen() == true)
+				}//close if (fleet[i]->getAttackingStatus() == true)
+			}//close if(fleet[i]->getFlag() == false)
+		}//close for (int i = 0; i < fleet.size(); i++)
+
 
 		//Background
 		
@@ -151,9 +204,10 @@ void GameLoop::onUpdate(float a_deltaTime)
 			shoot = true;
 		}
 
+		//collision player's laser and alien
 		if (shoot == true)
 		{			
-			zap.shootLaser(laser_speed_increment_y, hero.getX(), hero.getY()+10, timer, shoot);
+			zap.shootLaser(hero.getX(), hero.getY()+10, timer, shoot,1);
 			MoveSprite(zap.getImageId(), zap.getX(), zap.getY());
 
 			//detect collision
@@ -164,14 +218,19 @@ void GameLoop::onUpdate(float a_deltaTime)
 					bool kaboom = detect_collision(zap.getX(), zap.getY(), zap.getWidth(), zap.getHeight(),
 						fleet[i]->getX(), fleet[i]->getY(), fleet[i]->getWidth(), fleet[i]->getHeight());
 
-					if (kaboom == true)
+					if (kaboom == true) 
 					{
 						fleet[i]->setFlag(true);
 						shoot = false;
-						laser_speed_increment_y = 0;
+						zap.setLaserYIncrement(0);
+						//decrement the number of aliens that are alive
+						squad.set_operating_ships(squad.get_operating_ships() - 1);
+						//cout << "operating ships: " << squad.get_operating_ships() << "\n";
 					}
 				}
 			}
+
+			
 		}
 
 
@@ -182,7 +241,11 @@ void GameLoop::onUpdate(float a_deltaTime)
 		//moves the alien sprites side ways while in stand by mode.
 		for (int i = 0; i < fleet.size(); i++)
 		{
-			fleet[i]->setX(squad.shift_army(i, timer, fleet[i]->getShiftSpeed()));
+			//if one alien is attacking, then it wont be shifted sideways
+			if (fleet[i]->getAttackingStatus() == false)
+			{
+				fleet[i]->setX(squad.shift_army(i, timer, fleet[i]->getShiftSpeed()));
+			}
 		}
 		//cout << "0th x after: "<<fleet[0]->getX() << endl;
 
@@ -190,16 +253,16 @@ void GameLoop::onUpdate(float a_deltaTime)
 		
 		timer -= a_deltaTime;
 	}
+	//cout << "operating ships: " << squad.get_operating_ships() << "\n";
+
+	if (squad.get_operating_ships() == 0)
+		onDestroy();
 }
 
 void GameLoop::onDraw()
 {
 	clearScreen();
-
-	
-
 	float fDeltaT = GetDeltaTime();
-
 	DrawSprite(sky.getId());
 	DrawSprite(hero.getId());
 
@@ -212,11 +275,18 @@ void GameLoop::onDraw()
 		//cout << " shoot! laser (x,y) = (" << zap.getX() << " , " << zap.getY() << ")"<< endl;
 		//Test collision for every alien.
 	}
+	//cout << "laserGuns vector size: " << laserGuns.size() << endl;
 
 	//setImageId(sprite_choice, false);
 	
 	drawAliens();
 	
+	/*for (int a = 0; a < laserGuns.size(); a++)
+	{
+		//cout << "drawing alien lasers! " << a << "th time.\n";
+		MoveSprite(laserGuns[a]->getImageId(), laserGuns[a]->getX(), laserGuns[a]->getY());
+		DrawSprite(laserGuns[a]->getImageId());
+	}*/
 	
 	SetFont("./fonts/invaders.fnt");
 	DrawString("SCORE < 1 >", m_iScreenWidth * 0.025f, m_iScreenHeight - 2, 0.5f);
@@ -237,7 +307,9 @@ void GameLoop::onDraw()
 
 void GameLoop::onDestroy()
 {
-	
+	cout << "game over!\n";
+	system("pause");
+	//this->~GameLoop();
 }
 
 void GameLoop::setImageId(int choice, bool first_time)

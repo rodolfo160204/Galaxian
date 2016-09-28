@@ -22,6 +22,7 @@
     <ClCompile Include="Aliens.cpp" />
     <ClCompile Include="Background.cpp" />
     <ClCompile Include="GameLoop.cpp" />
+    <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="Laser.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Stars.cpp" />
@@ -31,6 +32,7 @@
     <ClInclude Include="Aliens.h" />
     <ClInclude Include="Background.h" />
     <ClInclude Include="GameLoop.h" />
+    <ClInclude Include="Geometry.h" />
     <ClInclude Include="Laser.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Stars.h" />

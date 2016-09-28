@@ -48,7 +48,7 @@ private:
 
 	//Variable that indicates if the player has fired (shot is true until the bullet is not on the screen anymore)
 	bool shoot;	
-	int laser_speed_increment_y = 0;
+	
 	unsigned int m_iPlayerSprite;
 	unsigned int player_laser_sprite;
 	unsigned int background;
@@ -68,11 +68,17 @@ private:
 	Enemy et;
 	Background sky;
 	Player hero;
+	//player laser object
 	Laser zap;
+
+	//alien laser vector of pointers to Laser object
+	std::vector <Laser*> laserGuns;
 	
 	float timer;
-	time_t time1;
-	time_t time2;
+	time_t t_begin;
+	time_t t_attack_begin;
+	time_t t_animate;
+	time_t t_attack;
 
 	int star_index;
 	int number_of_stars = 0;
@@ -81,6 +87,7 @@ private:
 	float alien_sliding_counter = 0.1f;
 	unsigned int sad_alien_images;
 	unsigned int happy_alien_images;
+	unsigned int alien_laser;
 	//vector of pointers to objects
 	std::vector <Enemy*> fleet;
 	

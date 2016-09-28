@@ -1,8 +1,9 @@
 #pragma once
 #include <iostream>
-
+#include "Useful_Methods.h"
 #include <vector>
 #include <iostream>
+#include "Laser.h"
 
 
 
@@ -17,6 +18,9 @@ private:
 	float m_enemy_shiftSpeed;
 	float m_enemy_attackSpeed;
 	bool m_dead_flag;
+	bool attacking;
+	bool crossedScreen;
+	Laser m_laser_fire;
 
 public:
 	Enemy();
@@ -44,7 +48,11 @@ public:
 	void setFlag(bool);
 	bool getFlag();
 
+	void setAttackingStatus(bool);
+	bool getAttackingStatus();
 
+	void setCrossedScreen(bool);
+	bool getCrossedScreen();
 };
 
 class Army
@@ -61,6 +69,7 @@ private:
 	float factor;
 	float offset;
 	float angle;
+	
 
 	float shift_standard_x_positions[30];
 	float shift_standard_y_positions[30];
@@ -83,9 +92,10 @@ public:
 	int get_operating_ships();
 
 
+
 	//void assemble(int number_of_ships);
-	void attack(int offensive_ships);
+	void attack(const std::vector <Enemy*> &fleet, std::vector <Laser*> &laserGuns, unsigned int alien_laser_id, float timer);
 	void createEnemy(int damaged_ships);
-	/*void stand_by(std::vector <Enemy*> fleet, float shift);
-	void shift_army(std::vector <Enemy*> fleet, float shift);*/
+	//check how many aliens are still alive. returns an integer relative to the number of aliens alive
+	void check_aliens(const std::vector <Enemy*> &fleet);
 };
